@@ -27,7 +27,7 @@ export class User {
   password: string;
 
   @Column({ default: 'user' })
-  rol: string;
+  role: string;
 
   // @DeleteDateColumn() => elimina columnas pero no de manera física en la base de datos, solo las elimina entregando una fecha pero no eliminando propiamente tal el elemento en la BASE DE DATOS.
   //   Por ejemplo si se siguen ventas y se requiere eliminar facturas, el registro sigue estando igualmente en el registro, es una pseudo eliminación

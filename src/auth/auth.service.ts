@@ -26,10 +26,15 @@ export class AuthService {
 
     const passwordHash = await bcryptjs.hash(registerDto.password, 10);
 
-    return await this.usersService.create({
+    await this.usersService.create({
       ...registerDto,
       password: passwordHash,
     });
+
+    return {
+      name: registerDto.name,
+      email: registerDto.email,
+    };
   }
 
   async login(loginDto: LoginDto) {
@@ -48,7 +53,7 @@ export class AuthService {
       throw new UnauthorizedException('Email / Password Invalid');
     }
 
-    const payload = { email: user.email };
+    const payload = { email: user.email, role: user.role };
 
     const token = await this.jwtService.signAsync(payload);
 
@@ -56,5 +61,16 @@ export class AuthService {
       token,
       email: user.email,
     };
+  }
+
+  async profile({ email, role }: { email: string; role: string }) {
+    // Esto es un poco perezoso, ya que si se tiene una cantidad importante de rutas, se tendrá que evaluar la cantidad como tantas rutas existan
+    // if (role !== 'admin') {
+    //   throw new UnauthorizedException(
+    //     'Your are not authorized to access this resource',
+    //   );
+    // }
+
+    return await this.usersService.findOneByEmail(email);
   }
 }

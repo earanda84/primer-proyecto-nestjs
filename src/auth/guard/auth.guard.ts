@@ -32,6 +32,7 @@ export class AuthGuard implements CanActivate {
 
       // Aca se agrega a la request el usuario
       request['user'] = payload;
+      // console.log('El payload de la request => ', payload);
     } catch (error) {
       throw new UnauthorizedException();
     }
@@ -46,3 +47,5 @@ export class AuthGuard implements CanActivate {
     return type === 'Bearer' ? token : undefined;
   }
 }
+
+// Este metodo es el que verifica si existe un token
