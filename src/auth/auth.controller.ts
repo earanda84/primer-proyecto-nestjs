@@ -6,8 +6,10 @@ import { AuthGuard } from './guard/auth.guard';
 import { Request } from 'express';
 import { Roles } from './decorators/role.decorator';
 import { RolesGuard } from './guard/roles.guard';
-import { Role } from './enums/rol.enum';
+import { Role } from '../common/enums/rol.enum';
 import { Auth } from './decorators/auth.decorator';
+import { ActiveUser } from 'src/common/decorators/active-user.decorator';
+import { UserActiveInterface } from 'src/common/interfaces/user-active.interface';
 
 // Se crea esta interface que extiende de la Requeste de Express, que agrega un elemento más que es el usuario junto con el email y el role
 interface RequestWithUser extends Request {
@@ -45,8 +47,9 @@ export class AuthController {
 
   // ruta con decorador unificado
   @Get('profile')
-  @Auth(Role.ADMIN)
-  profile(@Req() request: RequestWithUser) {
-    return this.authService.profile(request.user);
+  // Este decorador personalizado recibe como parametro el rol del usuario, el cual se define en el service de la creación de usuario
+  @Auth(Role.USER)
+  profile(@ActiveUser() user: UserActiveInterface) {
+    return this.authService.profile(user);
   }
 }

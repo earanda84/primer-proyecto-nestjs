@@ -1,10 +1,17 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { CreateCatDto } from './dto/create-cat.dto';
 import { UpdateCatDto } from './dto/update-cat.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Cat } from './entities/cat.entity';
 import { Repository } from 'typeorm';
-import { Breed } from 'src/breeds/entities/breed.entity';
+import { Breed } from '../breeds/entities/breed.entity';
+import { UserActiveInterface } from '../common/interfaces/user-active.interface';
+import { Role } from '../common/enums/rol.enum';
 
 // El service es el que interactúa con la capa de negocio, en donde se realizan las inserciones a la base de datos
 @Injectable()
@@ -17,72 +24,98 @@ export class CatsService {
     private readonly breedRepository: Repository<Breed>,
   ) {}
 
-  async create(createCatDto: CreateCatDto) {
+  async create(createCatDto: CreateCatDto, user: UserActiveInterface) {
     try {
-      const breed = await this.breedRepository.findOneBy({
-        name: createCatDto.breed,
+      const breed = await this.validateBreed(createCatDto.breed);
+
+      return await this.catsRepository.save({
+        ...createCatDto,
+        breed,
+        userEmail: user.email,
       });
-
-      if (!breed) {
-        throw new BadRequestException('Breed not Found.');
-      }
-
-      // const cat = this.catsRepository.create(createCatDto);
-
-      return await this.catsRepository.save({ ...createCatDto, breed });
     } catch (error) {
       return error;
     }
   }
 
-  async findAll() {
-    return await this.catsRepository.find();
-  }
-
-  async findOne(id: number) {
-    const ifNotExist = await this.catsRepository.findOneBy({ id });
-
-    if (!ifNotExist) {
-      return {
-        status: 404,
-        message: 'Bad Request',
-      };
+  async findAll(user: UserActiveInterface) {
+    if (user.role === Role.ADMIN) {
+      return await this.catsRepository.find();
     }
-    return await this.catsRepository.findBy({ id });
+    return await this.catsRepository.find({
+      where: { userEmail: user.email },
+    });
   }
 
-  async update(id: number, updateCatDto: UpdateCatDto) {
+  async findOne(id: number, user: UserActiveInterface) {
+    const cat = await this.catsRepository.findOneBy({ id });
+
+    this.catNotFound(cat);
+
+    this.validateOwnership(cat, user);
+
+    return cat;
+  }
+
+  async update(
+    id: number,
+    updateCatDto: UpdateCatDto,
+    user: UserActiveInterface,
+  ) {
     try {
-      const animal = await this.catsRepository.findOneBy({ id });
-      console.log(animal);
-      if (!animal) {
-        return {
-          status: 404,
-          message: 'El animal no existe',
-        };
-      }
-      return;
-      // return this.catsRepository.update(id, updateCatDto);
+      await this.findOne(id, user);
+
+      return await this.catsRepository.update(id, {
+        ...updateCatDto,
+        breed: updateCatDto.breed
+          ? await this.validateBreed(updateCatDto.breed)
+          : undefined,
+        userEmail: user.email,
+      });
     } catch (error) {
-      console.log(error);
+      throw new NotFoundException(error.message);
     }
   }
 
-  async remove(id: number) {
+  async remove(id: number, user: UserActiveInterface) {
     try {
-      const cat = await this.catsRepository.softDelete(id);
+      await this.findOne(id, user);
 
-      if (!cat.raw[0]) {
-        return {
-          status: 404,
-          message: 'Bad Request!',
-        };
-      }
-      // A softDelete se le pasan id
-      // A remove se le pasan entidades
-      return await this.catsRepository.softDelete(id);
+      return await this.catsRepository.softDelete({ id });
     } catch (error) {
-      console.log(error);
+      throw new NotFoundException(error.message);
     }
   }
+
+  // Sección Métodos privados
+  private async validateBreed(breed: string) {
+    const breedEntity = await this.breedRepository.findOneBy({ name: breed });
+
+    if (!breedEntity) {
+      throw new NotFoundException('Breed not Found');
+    }
+
+    return breedEntity;
+  }
+
+  private validateOwnership(cat: Cat, user: UserActiveInterface) {
+    if (user.role !== Role.ADMIN && cat.userEmail !== user.email) {
+      throw new UnauthorizedException();
+    }
+  }
+
+  private catNotFound(cat: Cat) {
+    if (!cat) {
+      throw new NotFoundException();
+    }
+  }
+
+  // private catNotFoundToUpdate(cat: Cat) {
+  //   if (!cat) {
+  //     return {
+  //       status: 404,
+  //       message: 'El animal no existe',
+  //     };
+  //   }
+  // }
 }

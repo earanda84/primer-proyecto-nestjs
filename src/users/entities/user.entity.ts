@@ -1,5 +1,6 @@
 // para crear una nueva entidad o Dto como se llama en TYPE ORM nest g res users --no-spec
 
+import { Role } from '../../common/enums/rol.enum';
 import {
   Column,
   DeleteDateColumn,
@@ -23,11 +24,15 @@ export class User {
   @Column({ unique: true, nullable: false })
   email: string;
 
-  @Column()
+  // el atributo select, se setea por defecto en true, si se configura en false, es para que cuando se llame al usuario, en este caso la entidad USER, no mostrará el elemento que contenga el atributo select: false en el decorador.
+  @Column({ nullable: false, select: false })
   password: string;
 
-  @Column({ default: 'user' })
-  role: string;
+  // El type: enum => considera una array con enumeradores para la base de datos
+  // EL default: Role.USER => invoca el enum de roles para esta caso el usuario.
+  // El enum: Rol => invoca al enum definido en el rol.enum.ts
+  @Column({ type: 'enum', default: Role.USER, enum: Role })
+  role: Role;
 
   // @DeleteDateColumn() => elimina columnas pero no de manera física en la base de datos, solo las elimina entregando una fecha pero no eliminando propiamente tal el elemento en la BASE DE DATOS.
   //   Por ejemplo si se siguen ventas y se requiere eliminar facturas, el registro sigue estando igualmente en el registro, es una pseudo eliminación

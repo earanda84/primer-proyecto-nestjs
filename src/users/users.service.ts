@@ -25,8 +25,16 @@ export class UsersService {
     return this.userRepository.findOneBy({ email });
   }
 
+  // Metodo personzalizado con clausulas tipo SQL de TYPEORM, que busca un elemento por los campos y el select devuelve el arreglo con los campos específicos que requerimos buscar.
+  findByEmailWithPassword(email: string) {
+    return this.userRepository.findOne({
+      where: { email },
+      select: ['id', 'name', 'email', 'password', 'role'],
+    });
+  }
+
   findAll() {
-    return `This action returns all users`;
+    return this.userRepository.find();
   }
 
   findOne(id: number) {

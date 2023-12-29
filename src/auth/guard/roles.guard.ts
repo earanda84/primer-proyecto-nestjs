@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/role.decorator';
-import { Role } from '../enums/rol.enum';
+import { Role } from '../../common/enums/rol.enum';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -26,6 +26,12 @@ export class RolesGuard implements CanActivate {
     if (!role) {
       return true;
     }
+
+    // Con esta línea, el usuario tendrá acceso a toda las rutas, incluidas las protegidas para el usuario
+    if (user.role === Role.ADMIN) {
+      return true;
+    }
+
     // console.log(role);
     console.log(role === user.role);
     return role === user.role;
